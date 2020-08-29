@@ -8,11 +8,6 @@
  * 
  * The lights will also be colored based on the temperature range. 
  */
-#define RAISE_LIGHT_BY 2
-#define LOWER_LIGHT_BY 2
-#define TRIGGER_LIGHT 120
-#define TRIGGER_SOUND_HI 350
-#define TRIGGER_SOUND_LO 320
 
 const int brightnessLow = 30;
 const int brightnessHigh = 255;
