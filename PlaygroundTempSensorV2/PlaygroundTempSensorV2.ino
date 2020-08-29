@@ -9,14 +9,16 @@
  * The lights will also be colored based on the temperature range. 
  */
 
-const int brightnessLow = 30;
+const int brightnessLow = 20;
 const int brightnessHigh = 255;
-const int blinkTimer = 250;
+const int blinkTimer = 250; // units of milliseconds
 
 int  tempAdjust = -8;  // calibrated based on my household thermostat
 int delayCount = 0;
 bool lastLeftBtn = false;
 bool lastRightBtn = false;
+
+enum BlinkState {Disabled=0, TurnOn=1, TurnOff=2, GoBackToTurnOn=3};
 
 void setup() {
   CircuitPlayground.begin();
@@ -26,37 +28,38 @@ void setup() {
  
 }
 
-uint16_t getBlinkState(bool startBlinking, bool stopBlinking)
+BlinkState getBlinkState(bool startBlinking, bool stopBlinking)
 {
-  static uint16_t blinkState=0;
+  static BlinkState blinkState=Disabled;
   static unsigned long blinkLastTime=0;
 
   if ( stopBlinking )
   {
-    blinkState=0;
+    blinkState=Disabled;
     blinkLastTime=0;
     return blinkState; // Disable Blinking
   }
   
-  
-  if ( startBlinking && blinkState==0 )
+  if ( startBlinking && blinkState==Disabled )
   {
-    blinkState=1;
+    blinkState=TurnOn;
     blinkLastTime=0;
   }
 
   if ( blinkState && ((millis() - blinkLastTime) > blinkTimer) )
   {    
-    blinkState += 1;      // go from ON to OFF (1->2)
-    if (blinkState == 3)  // if state goes to 3, then switch back to ON (1)
+    switch (blinkState)
     {
-      blinkState = 1;
+      case TurnOn:
+        blinkState = TurnOff;
+        break;
+
+       case TurnOff:
+        blinkState = TurnOn;
+        CircuitPlayground.clearPixels();
+        break;
     }
-    else
-    {
-      CircuitPlayground.clearPixels();
-    }
-    
+
     blinkLastTime = millis();
   }
   return blinkState;
@@ -64,12 +67,7 @@ uint16_t getBlinkState(bool startBlinking, bool stopBlinking)
 
 bool areWeInBlinkTempRange(float temp)
 {
-  if ( temp < 0 || temp > 90)
-  {
-    return true;
-  }
-
-  return false;
+  return ( temp < 0 || temp > 99);
 }
 
 void chooseColorBasedOnTemp( float temp, uint16_t *redO, uint16_t *greenO, uint16_t *blueO, uint16_t *uintTempO )
@@ -147,10 +145,10 @@ void loop() {
   uint8_t rightBtn = CircuitPlayground.rightButton();	// adjust temp value by +1 degree
   static bool lastNeoDim = true;
   bool neoDim = CircuitPlayground.slideSwitch();             // LEFT=true, RIGHT=false  To change Brightness of NeoPixels; LEFT=dim RIGHT=bright
-  uint16_t soundValue = CircuitPlayground.soundSensor();
-  uint16_t lightValue = CircuitPlayground.lightSensor(); // between 0 and 1023 
+//  uint16_t soundValue = CircuitPlayground.soundSensor();
+//  uint16_t lightValue = CircuitPlayground.lightSensor(); // between 0 and 1023 
   uint16_t red,green,blue;		// RGB value that indicates temperature range
-  static uint16_t blinkState=0; // 0=notInBlinkMode, 1=LightsOn,  2=LightsOff
+  static BlinkState blinkState=Disabled; // 0=Disabled, 1=LightsOn,  2=LightsOff
   uint16_t uintTemp = 0;
   static uint16_t lastuintTemp=1000; // to make sure our current temperature doesn't match our last temperature
   bool tempChanged=false;
@@ -198,7 +196,7 @@ void loop() {
   else
   {
     (void) getBlinkState(0,1);
-    blinkState = 0;
+    blinkState = Disabled;
   }
 
   if ( lastuintTemp != uintTemp )
@@ -207,17 +205,17 @@ void loop() {
     lastuintTemp = uintTemp;
   }
   
-  if ( blinkState == 1 ) // on
+  if (TurnOn==blinkState)
   {
     showLights = true;
   }
-  else if ( blinkState == 2) // off
+  else if (TurnOff==blinkState)
   {
     showLights = false;
     CircuitPlayground.clearPixels();
   }
 
-  if ( blinkState == 0 ) 
+  if (Disabled == blinkState)
   {
     if ( delayCount <= 3000 )
     {
@@ -253,7 +251,7 @@ void loop() {
     }
   }
 
-  if ( blinkState == 0 ) 
+  if (Disabled == blinkState) 
   {
     if ( delayCount == 3000 )
     {
