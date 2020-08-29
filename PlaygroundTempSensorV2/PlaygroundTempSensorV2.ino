@@ -52,11 +52,11 @@ BlinkState getBlinkState(bool startBlinking, bool stopBlinking)
     {
       case TurnOn:
         blinkState = TurnOff;
+        CircuitPlayground.clearPixels();
         break;
 
        case TurnOff:
         blinkState = TurnOn;
-        CircuitPlayground.clearPixels();
         break;
     }
 
